@@ -182,12 +182,12 @@ class Anchor3DRangeGenerator(object):
         if len(feature_size) == 2:
             feature_size = [1, feature_size[0], feature_size[1]]
         anchor_range = tf.constant(anchor_range)
-        z_centers = tf.linspace(anchor_range[2], anchor_range[5],
-                                feature_size[0])
-        y_centers = tf.linspace(anchor_range[1], anchor_range[4],
-                                feature_size[1])
-        x_centers = tf.linspace(anchor_range[0], anchor_range[3],
-                                feature_size[2])
+        z_centers = tf.cast(tf.linspace(anchor_range[2], anchor_range[5],
+                                feature_size[0]), dtype=tf.float32)
+        y_centers = tf.cast(tf.linspace(anchor_range[1], anchor_range[4],
+                                feature_size[1]), dtype=tf.float32)
+        x_centers = tf.cast(tf.linspace(anchor_range[0], anchor_range[3],
+                                feature_size[2]), dtype=tf.float32)
         sizes = tf.constant(sizes)
         rotations = tf.constant(rotations)
 

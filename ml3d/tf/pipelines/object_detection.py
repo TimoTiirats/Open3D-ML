@@ -16,6 +16,7 @@ from ...datasets.utils import BEVBox3D, DataProcessing
 
 from ...metrics.mAP import mAP
 
+import time
 log = logging.getLogger(__name__)
 
 
@@ -54,6 +55,18 @@ class ObjectDetection(BasePipeline):
 
         return boxes
 
+
+    def filter_out_bb(self, results):
+        """ Filter out bounding boxes based on their confidence score
+        """
+        threshold = 0.65
+        correct_preds = []
+        for pred in results:
+            if pred.confidence > threshold:
+                correct_preds.append(pred)
+        return correct_preds
+
+
     def run_test(self):
         """Run test with test data split, computes mean average precision of the
         prediction results.
@@ -68,6 +81,7 @@ class ObjectDetection(BasePipeline):
         log.info("Logging in file : {}".format(log_file_path))
         log.addHandler(logging.FileHandler(log_file_path))
 
+        # Use only 'test' or 'testing' keyword as it contains objects without ground truth bounding boxes
         test_dataset = dataset.get_split('test')
         test_split = TFDataloader(dataset=test_dataset,
                                   model=model,
@@ -79,27 +93,40 @@ class ObjectDetection(BasePipeline):
         self.load_ckpt(model.cfg.ckpt_path)
 
         if cfg.get('test_compute_metric', True):
-            self.run_valid()
+            self.run_valid(validate_testing=True)
 
         log.info("Started testing")
         self.test_ious = []
 
-        pred = []
+        times = []
+        preds = []
+        attrs = []
         record_summary = 'test' in cfg.get('summary').get('record_for', [])
         process_bar = tqdm(test_loader, total=len_test, desc='testing')
-        for data in process_bar:
-            results = self.run_inference(data)
-            pred.append(results[0])
-            # Save only for the first batch
+        for idx, data in enumerate(process_bar):
+            attr = test_dataset.get_attr(idx) # Return point cloud attributes
+            start_time = time.time_ns()
+            results = self.run_inference(data) # Run inference
+            times.append(time.time_ns()-start_time)
+            # preds.append(self.filter_out_bb(results[0]))
+            preds.append(results[0]) 
+            attrs.append(attr)
+           
+            # Save only for the first batch. Needed for visualisation 
+            # in Open3D TensorBoard
             if record_summary and 'test' not in self.summary:
-                self.summary['test'] = self.get_3d_summary(results,
-                                                           data,
-                                                           0,
-                                                           save_gt=False)
+               self.summary['test'] = self.get_3d_summary(results,
+                                                          data,
+                                                          0,
+                                                          save_gt=False)
 
-        # dataset.save_test_result(pred, attr)
+        np.savetxt("inference.txt", times)
 
-    def run_valid(self, epoch=0):
+        # Save the prediction to file
+        dataset.save_test_result(preds, attrs)
+
+
+    def run_valid(self, epoch=0, validate_testing=False):
         """Run validation with validation data split, computes mean average
         precision and the loss of the prediction results.
 
@@ -117,7 +144,11 @@ class ObjectDetection(BasePipeline):
         log.info("Logging in file : {}".format(log_file_path))
         log.addHandler(logging.FileHandler(log_file_path))
 
-        valid_dataset = dataset.get_split('validation')
+        if validate_testing:
+            # Only use 'test_with_bb' or 'testing_with_bb' keyword as then the bounding boxes are preserved for evaluation
+            valid_dataset = dataset.get_split('test_with_bb')
+        else:
+            valid_dataset = dataset.get_split('validation')
         valid_split = TFDataloader(dataset=valid_dataset,
                                    model=model,
                                    use_cache=False,
@@ -281,10 +312,11 @@ class ObjectDetection(BasePipeline):
                         self.losses[l] = []
                     self.losses[l].append(v.numpy())
                     desc += " %s: %.03f" % (l, v.numpy())
-                desc += " > loss: %.03f" % loss_sum.numpy()
+                desc += " > loss: %.03f" % loss_sum.numpy()            
                 process_bar.set_description(desc)
                 process_bar.refresh()
 
+            log.info(desc)
             # --------------------- validation
             self.run_valid()
 

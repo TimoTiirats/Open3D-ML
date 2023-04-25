@@ -249,7 +249,7 @@ class PointPillars(BaseModel):
         data['point'] = points
 
         #Augment data
-        if attr['split'] not in ['test', 'testing', 'val', 'validation']:
+        if attr['split'] not in ['test', 'testing', 'val', 'validation', 'test_with_bb', 'testing_with_bb']:
             data = self.augment_data(data, attr)
 
         new_data = {'point': data['point'], 'calib': data['calib']}
@@ -1097,6 +1097,7 @@ class Anchor3DHead(tf.keras.layers.Layer):
                 (bboxes, scores, labels).
         """
         bboxes, scores, labels = [], [], []
+        #print(cls_score)
         for cls_score, bbox_pred, dir_pred in zip(cls_scores, bbox_preds,
                                                   dir_preds):
 

@@ -5,7 +5,7 @@ import os
 from os.path import exists, join
 
 import numpy as np
-import open3d.ml.torch as ml3d
+import open3d.ml.tf as ml3d
 import tensorflow as tf
 from open3d.ml.datasets import (
     KITTI,
@@ -14,6 +14,7 @@ from open3d.ml.datasets import (
     Semantic3D,
     SemanticKITTI,
     Toronto3D,
+    BBLightCode
 )
 from open3d.ml.vis import LabelLUT, Visualizer
 from util import ensure_demo_data
@@ -128,8 +129,8 @@ def pred_custom_data(pc_names, pcs, pipeline_r, pipeline_k):
 
 # ------------------------------
 
-from open3d.ml.torch.models import KPFCNN, RandLANet
-from open3d.ml.torch.pipelines import SemanticSegmentation
+from open3d.ml.tf.models import KPFCNN, RandLANet
+from open3d.ml.tf.pipelines import SemanticSegmentation
 
 
 def main():
@@ -145,6 +146,7 @@ def main():
         "semantic3d": Semantic3D,
         "semantickitti": SemanticKITTI,
         "toronto": Toronto3D,
+        "lightcode": BBLightCode,
         "custom": None,
     }
     try:
@@ -192,7 +194,7 @@ def main():
 
         v.visualize(pcs_with_pred)
     else:
-        v.visualize_dataset(dataset, "training")
+        v.visualize_dataset(dataset, "testing")
 
 
 if __name__ == "__main__":

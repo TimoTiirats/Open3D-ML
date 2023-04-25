@@ -5,8 +5,8 @@ import sys
 import yaml
 import pprint
 import os
-import torch.distributed as dist
-from torch import multiprocessing
+#import torch.distributed as dist
+#from torch import multiprocessing
 
 from pathlib import Path
 
@@ -241,5 +241,5 @@ if __name__ == '__main__':
         format='%(levelname)s - %(asctime)s - %(module)s - %(message)s',
     )
 
-    multiprocessing.set_start_method('forkserver')
+    #multiprocessing.set_start_method('forkserver')
     sys.exit(main())
